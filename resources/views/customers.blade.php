@@ -11,18 +11,20 @@
                 <caption class="sr-only">Sample customers directory with id, name, email, phone, status.</caption>
                 <thead><tr><th scope="col">ID</th><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Phone</th><th scope="col">Status</th></tr></thead>
                 <tbody>
-                @foreach ($customers as $customer)
+                @forelse ($customers as $customer)
                 <tr>
-                    <td>{{ $customer['id'] }}</td>
-                    <td>{{ $customer['name'] }}</td>
-                    <td>{{ $customer['email'] }}</td>
-                    <td>{{ $customer['phone'] }}</td>
-                    <td><span @class(['status', 'inactive' => $customer['status'] === 'Inactive'])>{{ $customer['status'] }}</span></td>
+                    <td>{{ $customer->id }}</td>
+                    <td>{{ $customer->full_name }}</td>
+                    <td>{{ $customer->email }}</td>
+                    <td>{{ $customer->phone }}</td>
+                    <td><span @class(['status', 'inactive' => $customer->status === 'Inactive'])>{{ $customer->status }}</span></td>
                 </tr>
-                @endforeach
+                @empty
+                <tr><td colspan="5">No customers found.</td></tr>
+                @endforelse
                 </tbody>
             </table>
         </div>
-        <div class="table-footer">Showing all {{ count($customers) }} customers <span>Static sample data</span></div>
+        <div class="table-footer">Showing all {{ count($customers) }} customers <span>Database records</span></div>
     </section>
 @endsection

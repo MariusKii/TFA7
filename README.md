@@ -1,185 +1,130 @@
-# Counter POS — Laravel POS Foundations
+# Counter POS — From Arrays to Eloquent
 
-IT0049 Technical Formative Assessment 5: From Zero to Four Pages, Again.
+IT0049 Technical Formative Assessment 6. This upgrades the existing TFA5 application in place: customer and team directories now retrieve persistent records through Eloquent. The existing four pages, navigation, CSS, roles, and status badges are preserved. Checkout, account editing, and login screens remain outside this activity.
 
-Counter POS is a four-page Laravel application for learning routes, controllers, and Blade. It provides a welcome page, project information, and two read-only account directories using fictional sample data. This foundation does not implement checkout, CRUD, or authentication.
+## Technologies and requirements
 
-## Features
+Laravel 13.42.0, PHP 8.3+ compatible with composer.lock (tested on PHP 8.5.10), Composer 2, Blade, HTML/CSS, SQLite, and PHPUnit 12. Install PHP PDO SQLite plus the extensions checked by `composer check-platform-reqs`. MySQL deployments additionally need PDO MySQL. No new packages or frontend build are needed. The lock file is authoritative for dependency versions.
 
-- Four named GET routes handled by three controllers.
-- Five customer records and five user records defined in static PHP arrays.
-- Blade inheritance with `@extends`, `@section`, and `@yield`; both directories use `@foreach`.
-- Responsive shared navigation with active-page highlighting, keyboard focus styles, a skip link, and scrollable tables.
-- Local CSS without a JavaScript framework, external fonts, or a frontend build requirement.
-- Feature tests for pages, navigation, records, and database independence.
+## Install a new downloaded copy
 
-## Technology stack and prerequisites
-
-- Laravel 13 (installed framework: 13.42.0; exact dependencies in composer.lock).
-- PHP 8.3 or later supported by the locked packages; developed and tested on PHP 8.5.10.
-- Composer 2 (tested with 2.10.3), HTML5, CSS3, Blade, and PHPUnit 12.
-- Git for submission, and internet access for initial Composer downloads.
-- PHP extensions: Ctype, cURL, DOM, Fileinfo, Filter, Hash, Mbstring, OpenSSL, PCRE, PDO, Session, Tokenizer, and XML. Development test packages also need XMLWriter. Run `composer check-platform-reqs` for the complete installed dependency check.
-
-A global Laravel installer is optional. Node.js, npm, a database server, and database migrations are not required for these four pages. Default frontend scaffold files remain available but are not loaded by the layout.
-
-## Installation and Composer setup
-
-After cloning your repository, enter its root directory:
+Run these commands from the project root. Copy `.env` and generate the key only on first installation; preserve existing credentials and production keys.
 
 ```sh
-cd laravel-pos
 composer install
 cp .env.example .env
 php artisan key:generate
+php -r "file_exists('database/database.sqlite') || touch('database/database.sqlite');"
+php artisan migrate --no-interaction
+php artisan db:seed --no-interaction
 composer check-platform-reqs
 php artisan serve
 ```
 
-Open http://127.0.0.1:8000. Stop the development server with Ctrl+C.
+Visit http://127.0.0.1:8000. Stop the server with Ctrl+C. For the existing prepared copy, migrations and seeders have already run; start it with `php artisan serve`. `composer run dev` also starts the server. Never run `migrate:fresh` against existing data.
 
-For this already-prepared local copy, dependencies and the local key are already installed. You can start it with `php artisan serve`.
+## Database setup
 
-Alternatively, `composer run setup` installs dependencies, creates .env only if missing, and generates a key. Use it for initial setup; do not regenerate an existing production key. `composer run dev` starts the Artisan server. No `npm install` or `npm run build` is needed.
+The existing driver is SQLite and is preserved. `.env` and database files are ignored by Git. With `DB_CONNECTION=sqlite` and no active DB_DATABASE setting, Laravel uses `database/database.sqlite`. If an explicit DB_DATABASE is configured, use its absolute path and ensure it exists and PHP can write to it. No passwords were changed.
 
-If Composer reports a missing PHP version or extension, install/enable that prerequisite for your CLI PHP and rerun `composer install`; do not bypass platform requirements.
+Keep `SESSION_DRIVER=file`, `CACHE_STORE=file`, and `QUEUE_CONNECTION=sync` for this single-instance lab. After changing environment values run `php artisan config:clear`. PHP must be able to write `storage/`, `bootstrap/cache/`, and the SQLite database directory.
 
-## Environment configuration
+For a host that requires MySQL, create an empty application database in the hosting control panel, grant its application user access, then configure DB_CONNECTION=mysql, DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME and DB_PASSWORD securely in the host environment. Use the host-provided values, then run the same migrations and seeders. This creates the schema and demonstration records; it does not transfer an existing SQLite dataset. MySQL execution has not been tested here.
 
-The committed `.env.example` has a blank application key. Your local `.env` must contain a generated key and is ignored by Git.
+## Schema and TFA2 compatibility
 
-```dotenv
-APP_NAME="Counter POS"
-APP_ENV=local
-APP_DEBUG=true
-APP_URL=http://localhost:8000
-SESSION_DRIVER=file
-CACHE_STORE=file
-QUEUE_CONNECTION=sync
-```
+TFA2's supplied schema specifies full_name VARCHAR(100), customer email VARCHAR(100), nullable phone VARCHAR(20), and unique username VARCHAR(50). Those definitions are used. Intentional additions preserve the existing Laravel application and TFA5 display: updated_at timestamps, customer status, user role/status, and all default authentication columns. The users primary key remains Laravel's BIGINT rather than replacing it with TFA2's INT; existing nullable Laravel timestamps also remain. SQLite represents Laravel string and timestamp declarations using SQLite types and does not enforce VARCHAR lengths like MySQL.
 
-File sessions/cache and synchronous queues avoid Laravel's default database-backed infrastructure. After changing environment values, run `php artisan config:clear`. The `storage/` and `bootstrap/cache/` directories must be writable by PHP.
+| Customers column | Definition |
+| --- | --- |
+| id | Unsigned INT auto-increment primary key on MySQL; integer primary key on SQLite |
+| full_name | VARCHAR(100), required |
+| email | VARCHAR(100), required; no added unique constraint, matching TFA2 |
+| phone | VARCHAR(20), nullable |
+| created_at, updated_at | DATETIME, required, maintained by Eloquent |
+| status | VARCHAR(20), required, default Active |
 
-## Available routes
+| Users column | Definition |
+| --- | --- |
+| id | Existing unsigned BIGINT auto-increment primary key; SQLite integer primary key |
+| username | VARCHAR(50), required, unique |
+| full_name | VARCHAR(100), required |
+| name | Existing VARCHAR(255), required, retained for authentication compatibility |
+| email | Existing VARCHAR(255), required, unique |
+| email_verified_at | Existing nullable timestamp |
+| password | Existing required VARCHAR(255), hashed by the User model |
+| remember_token | Existing nullable VARCHAR(100) |
+| created_at, updated_at | Existing nullable Laravel timestamps |
+| role | VARCHAR(50), required, default Staff |
+| status | VARCHAR(20), required, default Active |
 
-| Method | URL | Route name | Controller method | Blade view |
-| --- | --- | --- | --- | --- |
-| GET | `/` | `home` | `PageController@index` | `home` |
-| GET | `/about` | `about` | `PageController@about` | `about` |
-| GET | `/customers` | `customers.index` | `CustomerController@index` | `customers` |
-| GET | `/users` | `users.index` | `UserController@index` | `users` |
+The original users migration remains unchanged. A new migration adds the POS columns, assigns existing accounts unique usernames `legacy_<id>`, copies up to 100 characters of their names into full_name, then makes the new fields required. Original names, IDs, email addresses, passwords, and tokens remain intact. Full names longer than 100 characters are shortened only in the new POS column. Back up databases before deployments. Rolling back the new migration removes its added fields; use rollback only when that loss of POS field data is intended.
 
-Laravel also supports HEAD requests on these routes and includes its framework health endpoint. Inspect the assignment routes with `php artisan route:list --except-vendor`.
+## Seeders and sample records
 
-## Project structure
+`DatabaseSeeder` calls `CustomerSeeder` and `UserSeeder`. Customers use Eloquent firstOrCreate keyed by email. Users are created through Eloquent only when neither their demonstration username nor email already exists. Reruns keep edits and password hashes, and do not add duplicate demonstration accounts. Existing conflicting user identifiers are skipped rather than overwritten; on a populated deployment, check that at least five users exist after seeding.
 
-```text
-app/
-  Http/Controllers/
-    PageController.php
-    CustomerController.php
-    UserController.php
-  Models/User.php                 # Default Laravel model, not queried by these pages
-bootstrap/app.php
-config/
-database/
-  factories/UserFactory.php       # Default scaffold retained
-  migrations/                    # Default users/cache/jobs migrations retained
-  seeders/DatabaseSeeder.php      # Default scaffold retained
-public/
-  index.php
-  css/app.css                    # Styles loaded directly, without Vite
-resources/views/
-  layouts/app.blade.php           # Shared document, navigation, header, footer
-  home.blade.php
-  about.blade.php
-  customers.blade.php
-  users.blade.php
-routes/web.php
-tests/Feature/PagesTest.php
-.env.example
-composer.json
-composer.lock
-phpunit.xml
-```
+Customer samples are Isabel Santos, Miguel Reyes, Sofia Cruz, Gabriel Lim, and Amelia Garcia. Team samples are Andrea Mendoza (andrea.mendoza), Daniel Ramos (daniel.ramos), Chloe Tan (chloe.tan), Lucas Flores (lucas.flores), and Elena Torres (elena.torres). All emails use example.com. See IMPLEMENTATION_REPORT.md for all sample fields.
 
-## MVC explained
-
-A request such as `/customers` matches a route in `routes/web.php`. The route calls `CustomerController::index()`. The controller prepares a PHP array and passes it to `customers.blade.php`. Blade loops through that array and places the page content inside `layouts/app.blade.php`.
-
-- **Model:** normally represents persistent data and business rules. The default User model remains intact, but this assignment intentionally uses controller arrays instead of querying models.
-- **View:** handles HTML presentation. The shared layout supplies navigation and uses `@yield`; individual pages use `@extends` and `@section`.
-- **Controller:** prepares data and selects the view. `PageController` returns the landing/about views; `CustomerController` supplies customer ID, name, email, phone, and status; `UserController` supplies user ID, name, email, role, and status.
-
-Named `route()` links keep navigation connected to the route definitions. `request()->routeIs()` highlights the active page. Blade's `{{ }}` output escapes record values.
-
-## Static PHP arrays and database files
-
-Each account controller defines a local array with five associative records. This is the required temporary data source; it is reconstructed on each request and changes are made directly in the source. No account records are retrieved from a database, and no database population is required.
-
-Laravel's default migrations, seeder, factory, and model are retained for the submission requirement. The standard project creation command initially created and migrated a local SQLite file; it is ignored by Git and is not required by the pages. The default seeder creates a separate test model account only when explicitly executed and does not supply the account table pages.
-
-For an optional future database lesson, with the SQLite PDO extension installed, create the local SQLite file and run the default migrations/seeder:
+Demo users receive random passwords hashed by Laravel; no reusable demo password is stored or documented. These pages do not provide a login form. The Authenticatable base class, notifications, hidden credentials, casts, and default authentication tables remain available.
 
 ```sh
-php -r "file_exists('database/database.sqlite') || touch('database/database.sqlite');"
-php artisan migrate --seed
+php artisan migrate --no-interaction
+php artisan db:seed --no-interaction
+php artisan migrate:status --no-interaction
+php artisan db:show --counts --no-interaction
 ```
 
-This optional command writes to your configured database. The four page listings remain static afterward. An SQL export is unnecessary because migration and seeder files are included.
+## Pages and Eloquent flow
 
-## Testing
+| URL | Named route | Controller |
+| --- | --- | --- |
+| / | home | PageController@index |
+| /about | about | PageController@about |
+| /customers | customers.index | CustomerController@index |
+| /users | users.index | UserController@index |
+
+Routes are unchanged. CustomerController calls `Customer::all()` and UserController calls `User::all()`. Eloquent uses the conventional customers/users tables. Both models define mass-assignable `$fillable` attributes. Controllers pass collections to the existing Blade templates. Templates display full_name and the other account fields with escaped `{{ }}` output and `@forelse` empty states. The user directory adds a username column while keeping email, role, and status. Model factories support isolated tests. The shared layout and stylesheet retain the TFA5 design.
+
+## Verification
 
 ```sh
-php artisan route:list --except-vendor
 php artisan test --compact
+php artisan route:list --except-vendor --no-interaction
+php artisan view:cache --no-interaction
 composer check-platform-reqs
-vendor/bin/pint --format agent
+vendor/bin/pint --dirty --format agent
 ```
 
-`PagesTest` checks HTTP success, every navigation destination on every page, exactly one active navigation link, at least five records per controller array, rendered field values and row counts, and the required `@foreach` directives. It also verifies that the pages execute no database queries and still load with a nonexistent database path. Tests do not use `RefreshDatabase` or populate any records.
+Executed locally: 11 tests passed with 69 assertions. Tests use isolated in-memory SQLite databases and cover Eloquent collections, edited database values, navigation, empty states, escaped HTML, nullable phone, unique usernames, repeatable seeding, and preservation of an existing account during migration. The existing SQLite database migrated successfully and contains five customers and five users after two seeder runs. All four live HTTP pages and public/css/app.css returned 200. MySQL and production hosting have not been tested.
 
-The prepared project passed 6 tests with 94 assertions on PHP 8.5.10. Live Artisan HTTP checks returned 200 on all four routes and the CSS asset. See `SUBMISSION.md` for hand-in steps and `IMPLEMENTATION_REPORT.md` for validation details.
+## GitHub submission
 
-For a manual check, start `php artisan serve`, visit each URL, click the navigation links, and check table scrolling on a narrow screen. To change ports, use `php artisan serve --port=8001`.
+The existing repository is [MariusKii/laravel-pos](https://github.com/MariusKii/laravel-pos). The TFA6 update is published in this repository. For future updates, review the diff before publishing:
 
-## Deployment guidance
+```sh
+git status --short
+git diff
+php artisan test --compact
+git add app database resources/views tests README.md IMPLEMENTATION_REPORT.md SUBMISSION.md screenshots
+git diff --cached
+git commit -m "Upgrade POS directories to Eloquent for TFA6"
+git push origin main
+```
 
-Choose a host capable of running PHP/Laravel; a static-only host such as GitHub Pages cannot execute this application. The host must support the PHP version and extensions required by composer.lock.
+Submit the updated repository URL and a verified hosted application URL. Migration and seeder source files satisfy the activity's migration/seeder submission option; an SQL export is not required for that option. Keep `.env`, passwords, database files, vendor, logs, and generated caches out of Git. Complete the assignment cover sheet separately.
 
-1. Upload or deploy the Git repository and run `composer install --no-dev --optimize-autoloader`.
-2. Create the production environment securely. Set `APP_ENV=production`, `APP_DEBUG=false`, and `APP_URL` to the real HTTPS URL. Generate a new production `APP_KEY` once with `php artisan key:generate`; preserve it across later deployments.
-3. Keep `SESSION_DRIVER=file`, `CACHE_STORE=file`, and `QUEUE_CONNECTION=sync`. No migrations are needed for the four pages.
-4. Point the web server document root at `public/`, never the project root. Configure requests to reach `public/index.php` and make `storage/` and `bootstrap/cache/` writable.
-5. Run `php artisan optimize`, enable HTTPS, and verify all four public URLs plus the stylesheet.
-6. Persistent writable storage is needed for file sessions/cache. On a multi-server deployment, use shared storage or appropriately configured shared drivers; this assignment targets a simple single-instance host.
+## Deployment
 
-Do not use Artisan's development server as a production web server. Do not publish `.env` or enable production debug output. The source repository is available through the submission link below. Hosting authentication and a real deployment are still required; no hosted URL has been invented.
+Use a PHP-capable host compatible with the locked dependencies. GitHub Pages cannot execute Laravel. No production deployment was performed.
 
-Official references: [Laravel installation](https://laravel.com/docs/13.x/installation), [deployment](https://laravel.com/docs/13.x/deployment), [routing](https://laravel.com/docs/13.x/routing), and [Blade](https://laravel.com/docs/13.x/blade).
+1. Deploy the reviewed repository and run `composer install --no-dev --optimize-autoloader`.
+2. Configure a private production environment with APP_ENV=production, APP_DEBUG=false, APP_URL set to the real HTTPS address, and a production APP_KEY generated once and preserved on redeployments.
+3. Configure a persistent database. For SQLite, use an absolute path on a persistent writable volume, create the file once, and ensure PHP can write its directory. Ephemeral hosting filesystems cannot retain this database between deployments. For MySQL, provision the database/user and supply host-managed connection values.
+4. Back up existing production data. Run `php artisan migrate --force --no-interaction` and, for the lab's demonstration records, `php artisan db:seed --force --no-interaction`.
+5. Set the document root to public/. Configure requests to public/index.php and writable storage/ and bootstrap/cache/. File sessions/cache require persistent storage; this setup targets a single instance.
+6. Run `php artisan optimize`, enable HTTPS, verify all four routes and CSS, confirm at least five records per directory, then record the real URL in SUBMISSION.md.
 
-## Screenshots
+Use the host's web server in production. Artisan serve is for local development. Do not publish secrets or use destructive reset commands on an existing database.
 
-Screenshots captured from the running local application. On narrow screens, scroll the account tables horizontally to see every column.
-
-### Landing page
-
-![Landing page](screenshots/01-home.png)
-
-### About page
-
-![About page](screenshots/02-about.png)
-
-### Customer Accounts
-
-![Customer Accounts](screenshots/03-customers.png)
-
-### User Accounts
-
-![User Accounts](screenshots/04-users.png)
-
-## Submission links
-
-- GitHub repository: `[MariusKii/laravel-pos](https://github.com/MariusKii/laravel-pos)`
-- Hosted application: `[Replace with your verified live URL]`
-- Student/group name, section, and professor: `[Complete your assignment cover sheet]`
+Official references: [migrations](https://laravel.com/docs/13.x/migrations), [Eloquent](https://laravel.com/docs/13.x/eloquent), [seeding](https://laravel.com/docs/13.x/seeding).

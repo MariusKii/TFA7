@@ -23,7 +23,7 @@
     <div class="workspace">
         <header class="topbar"><span>Counter / <strong>@yield('title')</strong></span><span class="tag">POS FOUNDATION</span></header>
         <main id="main" tabindex="-1">@yield('content')</main>
-        <footer>Counter POS <span>Built with Laravel &amp; Blade · IT0049 TFA5</span></footer>
+        <footer>Counter POS <span>Built with Laravel &amp; Blade · IT0049 TFA6</span></footer>
     </div>
 </body>
 </html>

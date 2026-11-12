@@ -1,89 +1,156 @@
-# Implementation report
+# IT0049 TFA6 implementation report
 
-Completed on November 12, 2026 (Asia/Manila).
+## A. Implementation summary
 
-## Environment and project creation
+The existing TFA5 project was upgraded directly at:
+`/Users/marius/Documents/Codex/2026-11-12/files-mentioned-by-the-user-it0049/outputs/laravel-pos`.
 
-The initial workspace had no Laravel project. PHP 8.5.10 and Composer 2.10.3 were installed; the standalone Laravel installer was absent and unnecessary. Composer created `laravel-pos` with Laravel framework 13.42.0. All installed platform requirements passed. The generated AGENTS.md required Laravel Boost setup, so Boost was installed as a development dependency and its generated guidelines were read before application changes.
+Laravel 13.42.0 and PHP 8.5.10 were retained. The configured SQLite driver, environment credentials, existing four routes, CSS, navigation, roles, and status badges were preserved. No new application or package was installed. CustomerController and UserController now call Customer::all() and User::all(). Blade displays Eloquent objects with full_name and required usernames, escaped output, and empty-result messages.
 
-The initial network-restricted Composer request could not resolve Packagist. The approved network-enabled retry succeeded. The initial sandboxed localhost bind was blocked; the approved server launch succeeded. Neither is an unresolved application error.
+TFA2 was available and inspected. Its VARCHAR lengths and nullable customer phone were used. Extra display and authentication fields remain to preserve TFA5 behavior. The original users migration was already applied, so a separate additive migration extends it instead of creating a competing users table. That migration backfills existing usernames as legacy_<id> and copies up to 100 characters of existing names into full_name without changing original names or credentials. The local database initially contained zero users; a separate isolated migration test verified preservation of an existing account. A private database backup was saved in this chat's work directory before migration.
 
-## Files created or modified
+## B. Files created
 
-- `routes/web.php`: four named controller-based routes.
-- `app/Http/Controllers/PageController.php`: `index()` returns the home view; `about()` returns the about view.
-- `app/Http/Controllers/CustomerController.php`: `index()` prepares five associative customer records (ID, name, email, phone, status) and passes them to the customers view.
-- `app/Http/Controllers/UserController.php`: `index()` prepares five associative staff records (ID, name, email, role, status) and passes them to the users view.
-- `resources/views/layouts/app.blade.php`: shared document, stylesheet, navigation, active state, header, content slot, and footer.
-- `resources/views/home.blade.php`: welcome message, POS introduction, and working navigation cards.
-- `resources/views/about.blade.php`: project purpose, technology stack, and MVC explanation.
-- `resources/views/customers.blade.php` and `users.blade.php`: accessible table headers, record counts, status labels, and `@foreach` loops.
-- `public/css/app.css`: responsive sidebar/navigation, dashboard cards, horizontally scrollable account tables, and keyboard focus styles.
-- `.env.example` and local ignored `.env`: file sessions/cache, synchronous queues, and application name. The local key was generated and is not committed.
-- `.gitignore`: ignores environment variants, dependencies, generated files, and local SQLite data while keeping `.env.example` available.
-- `composer.json` and `composer.lock`: reproducible dependencies, simplified initial setup and server scripts; Boost remains development-only.
-- `tests/Feature/PagesTest.php`: four meaningful page/data/navigation/database-independence tests, alongside the two default Laravel tests.
-- `README.md`, `SUBMISSION.md`, and this report: setup, MVC/data explanation, testing, exact GitHub steps, and hosting instructions.
+- app/Models/Customer.php
+- database/factories/CustomerFactory.php
+- database/migrations/2026_11_12_134920_create_customers_table.php
+- database/migrations/2026_11_12_134921_add_pos_fields_to_users_table.php
+- database/seeders/CustomerSeeder.php
+- database/seeders/UserSeeder.php
+- tests/Feature/EloquentAccountsTest.php
+- tests/Feature/ExistingUserMigrationTest.php
 
-The default model, factory, migrations, and seeder remain intact. The unused default welcome view and frontend scaffold remain available; the application loads its CSS directly from public/css.
+## C. Files modified
 
-## Routes and Blade flow
+- app/Http/Controllers/CustomerController.php — Eloquent retrieval.
+- app/Http/Controllers/UserController.php — Eloquent retrieval.
+- app/Models/User.php — fillable POS fields; authentication base class, hashing, hidden credentials, and notifications preserved.
+- database/factories/UserFactory.php — required username/full_name fields.
+- database/seeders/DatabaseSeeder.php — registers both account seeders.
+- resources/views/customers.blade.php — model properties and empty state.
+- resources/views/users.blade.php — model properties, username column, and empty state.
+- resources/views/about.blade.php — TFA6/Eloquent explanation.
+- resources/views/layouts/app.blade.php — TFA6 footer label.
+- tests/Feature/PagesTest.php — replaces obsolete database-independent tests with database-backed navigation checks.
+- README.md — setup, schema, commands, tests, submission, and deployment.
+- SUBMISSION.md — TFA6 hand-in checklist.
+- IMPLEMENTATION_REPORT.md — this report replaces the TFA5 report.
+- screenshots — account and project screenshots refreshed from the local app.
 
-| URL | Route name | Handler | View |
+Routes, stylesheet, dependencies, original migrations, and .env were not modified. Local database changes are ignored by Git.
+
+## D. Database structure
+
+These are migration-level definitions; SQLite uses its native integer, varchar, and datetime storage types. MySQL unsigned/increment semantics differ from SQLite. SQLite does not enforce VARCHAR length limits.
+
+### Customers
+
+| Column | Definition |
+| --- | --- |
+| id | INT unsigned auto-increment primary key on MySQL; integer primary key on SQLite |
+| full_name | VARCHAR(100), required |
+| email | VARCHAR(100), required |
+| phone | VARCHAR(20), nullable |
+| created_at | DATETIME, required |
+| updated_at | DATETIME, required |
+| status | VARCHAR(20), required, default Active |
+
+### Users
+
+| Column | Definition |
+| --- | --- |
+| id | Existing unsigned BIGINT primary key on MySQL; integer primary key on SQLite |
+| username | VARCHAR(50), required, unique |
+| full_name | VARCHAR(100), required |
+| name | Existing VARCHAR(255), required |
+| email | Existing VARCHAR(255), required, unique |
+| email_verified_at | Existing nullable timestamp |
+| password | Existing VARCHAR(255), required; hashed |
+| remember_token | Existing VARCHAR(100), nullable |
+| created_at, updated_at | Existing nullable Laravel timestamps |
+| role | VARCHAR(50), required, default Staff |
+| status | VARCHAR(20), required, default Active |
+
+TFA2 compatibility decisions: customer field lengths/nullability and user username/full_name definitions match the supplied schema. Laravel timestamps include updated_at; existing users ID width, nullable timestamps, and authentication columns remain. Customer status and user role/status retain the previous directory fields. These are intentional extensions rather than an exact two-table-only reproduction. Laravel's sessions, password_reset_tokens, cache, and queue infrastructure tables remain.
+
+## E. Sample data
+
+### Customers
+
+| Full name | Email | Phone | Status |
 | --- | --- | --- | --- |
-| `/` | home | PageController@index | home.blade.php |
-| `/about` | about | PageController@about | about.blade.php |
-| `/customers` | customers.index | CustomerController@index | customers.blade.php |
-| `/users` | users.index | UserController@index | users.blade.php |
+| Isabel Santos | isabel.santos@example.com | 0917 555 0101 | Active |
+| Miguel Reyes | miguel.reyes@example.com | 0918 555 0102 | Active |
+| Sofia Cruz | sofia.cruz@example.com | 0919 555 0103 | Inactive |
+| Gabriel Lim | gabriel.lim@example.com | 0920 555 0104 | Active |
+| Amelia Garcia | amelia.garcia@example.com | 0921 555 0105 | Active |
 
-All four views extend layouts/app.blade.php and define title/content sections. The layout renders those sections with `@yield`. Account controllers own the required arrays; the views only present their data. No account model or database query is involved.
+### Users
 
-## Commands to run locally
+| Username | Full name | Email | Role | Status |
+| --- | --- | --- | --- | --- |
+| andrea.mendoza | Andrea Mendoza | andrea.mendoza@example.com | Administrator | Active |
+| daniel.ramos | Daniel Ramos | daniel.ramos@example.com | Manager | Active |
+| chloe.tan | Chloe Tan | chloe.tan@example.com | Cashier | Active |
+| lucas.flores | Lucas Flores | lucas.flores@example.com | Cashier | Inactive |
+| elena.torres | Elena Torres | elena.torres@example.com | Inventory Clerk | Active |
 
-From the project folder, the prepared copy only needs:
+Eloquent assigns IDs/timestamps. Customer IDs now use the database sequence rather than the TFA5 array's 1001–1005 display values. Each seeded user's legacy name equals full_name. Passwords are random and hashed, never published. User email or username conflicts are skipped to preserve existing accounts. Customer firstOrCreate uses email; repeated runs preserve existing values. Seeders populated five records per table in the actual local database and did not add duplicates on the second run.
 
-```sh
-php artisan serve
-```
+## F. Testing results
 
-For a fresh clone:
+Executed on the existing project on November 12, 2026:
+
+| Check | Result |
+| --- | --- |
+| php artisan test --compact | PASS: 11 tests, 69 assertions |
+| Existing local database migration | PASS: two new migrations applied, original migration history retained |
+| Seeder first and second runs | PASS: 5 customers and 5 users, no duplicate demo records |
+| php artisan db:show --counts | PASS: SQLite connected; required counts confirmed |
+| php artisan migrate:status | PASS: all five migration files applied |
+| php artisan route:list --except-vendor | PASS: four original named routes |
+| php artisan view:cache | PASS: Blade compilation |
+| composer check-platform-reqs | PASS |
+| vendor/bin/pint --dirty --format agent | PASS |
+| git diff --check | PASS |
+| Live GET /, /about, /customers, /users | PASS: HTTP 200 each |
+| Live GET /css/app.css | PASS: HTTP 200 |
+| Browser inspection | Customer and user directory styling and database data inspected |
+| MySQL / production hosting | Not executed |
+
+Feature coverage verifies Eloquent collections and visible fields, changes made through models appearing on subsequent requests, zero-record states, escaped script input, nullable phone, username uniqueness, seeder repeatability and password preservation, all navigation links, and one active link per page. An isolated legacy migration test verifies an existing account survives the upgrade, receives the required fields, and retains its credentials after rolling back only the additive migration. Tests use temporary in-memory SQLite databases, not the user's real database. No migrate:fresh command was run on the existing database.
+
+The first attempt to bind the local development server was blocked by sandbox networking. The approved local-server run and HTTP checks then succeeded. No unresolved test failures remain. Production deployment and MySQL behavior are unverified.
+
+## G. Commands
+
+For a new clone only, from the project root:
 
 ```sh
 composer install
 cp .env.example .env
 php artisan key:generate
+php -r "file_exists('database/database.sqlite') || touch('database/database.sqlite');"
+php artisan migrate --no-interaction
+php artisan db:seed --no-interaction
+php artisan test --compact
 php artisan serve
 ```
 
-Open http://127.0.0.1:8000. Stop with Ctrl+C, or choose another port using `php artisan serve --port=8001`. The server was left running on port 8000 at handoff.
+For the already configured project, preserve .env and APP_KEY:
 
-## Actual verification results
+```sh
+php artisan migrate --no-interaction
+php artisan db:seed --no-interaction
+php artisan serve
+```
 
-| Check actually run | Result |
-| --- | --- |
-| `php artisan route:list --except-vendor` | Four assignment GET/HEAD routes with correct names and controller methods |
-| `php artisan test --compact` | 6 tests passed, 94 assertions |
-| Live HTTP GET `/`, `/about`, `/customers`, `/users` | All returned 200 with HTML |
-| Live HTTP GET `/css/app.css` | 200 with text/css |
-| `composer check-platform-reqs` | All installed requirements passed |
-| `composer validate --strict` | Valid composer.json and lock consistency |
-| `vendor/bin/pint --format agent` | Passed |
-| `vendor/bin/pint --dirty --format agent` after git init | Passed |
-| `php artisan view:cache` | All Blade templates compiled successfully; cleared afterward |
-| `git check-ignore .env vendor/ database/database.sqlite` | All three ignored |
-| Browser navigation | Customer, user, and about links opened their corresponding pages |
-| Visual inspection | Landing and customer pages inspected at the in-app browser's narrow viewport; table overflow stayed within its scroll region |
+Use --port=8016 to match the local verification server. For production, use host-managed environment values and run migrations/seeders with --force, following README's deployment steps. Back up existing data first. Do not run migrate:fresh against existing data.
 
-The feature tests verify every navigation destination on every page, exactly one active navigation link, all five fields for all five records in each directory, rendered table row counts, and both required Blade `@foreach` loops. One test fails on any database query; another loads all four pages with a nonexistent SQLite database path. No database fixtures or RefreshDatabase are needed.
+## H. Submission checklist
 
-The first attempted test-file write used an incorrect relative path and failed; it was corrected before the recorded six-test run. The first dirty formatter invocation needed a Git repository; a full formatting run passed, and the dirty command passed after Git initialization.
+Complete locally: in-place upgrade, migrations, models, factories, seeders, Eloquent controllers, Blade output/empty states, navigation, database setup, repeatability checks, automated tests, live HTTP checks, and documentation.
 
-No known application errors remain. Desktop/mobile device coverage is limited to responsive CSS review and the browser viewport inspected; no automated browser device matrix was run. Four full-page screenshots are now included in screenshots/ and embedded in README.
+The TFA6 changes are published to the existing GitHub repository at https://github.com/MariusKii/laravel-pos. Still manual: deploy to a PHP-capable host with persistent database storage, run migrations and seeders there, verify its real HTTPS URL, and submit both the repository and hosted links. Complete the assignment cover sheet. No hosted URL or production success is claimed. The source archive excludes environment secrets, database contents/backups, vendor, Git metadata, logs, and compiled caches; run composer install and the setup commands after extracting it.
 
-## GitHub and hosting handoff
-
-The public submission repository is https://github.com/MariusKii/laravel-pos with branch main. Four full-page screenshots are included and embedded in README. The source was reviewed before publication to exclude local environment files, credentials, dependencies, generated caches, and SQLite data. See SUBMISSION.md for the remaining hand-in steps.
-
-Hosting has not been performed. Choose a PHP-capable host, authenticate, deploy the source, install production Composer dependencies, configure a persistent production key and secure environment, point the document root to public/, and make storage plus bootstrap/cache writable. Keep file sessions/cache and synchronous queues; no migration is required for the pages. Enable HTTPS and confirm all four URLs before adding the real URL to README. Add screenshots, your actual repository link, and assignment cover-sheet details before hand-in.
-
-Laravel 13 compatibility and production requirements were checked against the [official deployment documentation](https://laravel.com/docs/13.x/deployment). Installation details were checked against the [official installation documentation](https://laravel.com/docs/13.x/installation).
+References used for version-specific implementation: [Laravel 13 migrations](https://laravel.com/docs/13.x/migrations), [Eloquent](https://laravel.com/docs/13.x/eloquent), and [seeding](https://laravel.com/docs/13.x/seeding). TFA6 and the locally available TFA2 assignment documents supplied the activity requirements and original SQL schema.
