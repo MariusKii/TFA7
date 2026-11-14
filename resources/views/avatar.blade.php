@@ -1,0 +1,1 @@
+<img class="avatar" width="48" height="48" src="{{ $user->avatar && \Illuminate\Support\Facades\Storage::disk('public')->exists($user->avatar) ? \Illuminate\Support\Facades\Storage::disk('public')->url($user->avatar) : asset('images/avatar-placeholder.svg') }}" alt="Avatar for {{ $user->full_name }}">

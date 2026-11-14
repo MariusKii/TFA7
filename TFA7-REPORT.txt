@@ -1,0 +1,112 @@
+IT0049 TFA7 — Implementation report
+November 14, 2026
+
+1. IMPLEMENTATION
+Extended the existing TFA6 project directly at:
+/Users/marius/Documents/Codex/2026-11-12/files-mentioned-by-the-user-it0049/outputs/laravel-pos
+No new Laravel application was created. Existing models, controllers, Eloquent directory queries, navigation, schema fields, factories, seeders, and styling were reused.
+
+Customer and user creation/editing now use Laravel request validation, field-level errors, old input, CSRF protection, edit method fields, success notifications, and model binding with 404 responses. Customer name/email and user username/full_name can be edited without inserting duplicate records. Username uniqueness excludes the current record. Validated data is whitelisted; submitted role/status/password changes cannot affect edit workflows.
+
+The existing user schema requires name, email and password. New user forms therefore also request unique email and confirmed password, and synchronize name with full_name. The existing hashed password cast is retained. User edits preserve email, credentials, roles and status. Customer edits preserve phone/status.
+
+2. IMAGE PACKAGE AND STORAGE
+User confirmed Intervention Image is instructor approved and authorized installation. Installed intervention/image 3.11.10 and its intervention/gif 4.2.4 dependency, recorded in composer.json/composer.lock. GD is the processing driver; GD is installed locally and must be installed on another host.
+
+Edit User accepts JPG/JPEG, PNG, WebP and GIF up to 2048 KB, with a 4096-pixel per-axis dimension limit. Intervention Image prepares 256 x 256 PNG thumbnails. Storage::disk('public')->put() writes processed bytes to avatars/<UUID>.png. Only the relative path is stored. No move() or database binary data is used. Empty uploads preserve the existing avatar; missing files use the same local placeholder as null paths. Processing/write failures return validation errors; a database save exception cleans up the new file. Replaced historical avatar files are retained to avoid deleting existing uploads.
+
+3. DATABASE
+Added nullable users.avatar VARCHAR(255) through:
+database/migrations/2026_11_14_114245_add_avatar_to_users_table.php
+Applied the migration to the existing SQLite database after making a private backup in this chat's work directory. Compared all existing columns/rows against the backup: five customers and five users retained their original values. No reset or reseeding was performed. Created public/storage -> storage/app/public with artisan storage:link.
+
+4. ROUTES
+Existing home, about, customers.index and users.index remain.
+New routes (PUT and PATCH are both accepted):
+GET /customers/create — customers.create
+POST /customers — customers.store
+GET /customers/{customer}/edit — customers.edit
+PUT/PATCH /customers/{customer} — customers.update
+GET /users/create — users.create
+POST /users — users.store
+GET /users/{user}/edit — users.edit
+PUT/PATCH /users/{user} — users.update
+
+5. FILES
+Created:
+- database/migrations/2026_11_14_114245_add_avatar_to_users_table.php
+- resources/views/customer-form.blade.php
+- resources/views/user-form.blade.php
+- resources/views/avatar.blade.php
+- public/images/avatar-placeholder.svg
+- tests/Feature/AccountFormsTest.php
+- TFA7-REPORT.txt
+
+Modified:
+- app/Http/Controllers/CustomerController.php
+- app/Http/Controllers/UserController.php
+- routes/web.php
+- resources/views/customers.blade.php
+- resources/views/users.blade.php
+- resources/views/layouts/app.blade.php
+- public/css/app.css
+- composer.json
+- composer.lock
+- README.md
+- SUBMISSION.md
+
+Existing model fillable fields already support required text inputs; avatar is assigned explicitly. Original migrations and seeders were not replaced. IMPLEMENTATION_REPORT.md remains the earlier TFA6 historical report.
+
+6. EXECUTED CHECKS
+- php artisan test --compact: PASS, 23 tests / 179 assertions.
+- Prior TFA6 tests remain passing; 12 new feature tests cover TFA7 forms/uploads.
+- Valid customer/user creation, missing names/fields, invalid email, duplicate username/email, customer and user updates, unchanged username, credentials/role/avatar preservation.
+- Valid JPEG at 2048 KB accepted, processed to 256 x 256 PNG, stored on public disk, relative database path and listing URL verified.
+- PDF, SVG, 2049 KB image and excessive dimensions rejected without changing saved data.
+- Storage write failure, null/missing file placeholders, old input and field errors, CSRF fields, navigation, missing-record 404s.
+- php artisan migrate --no-interaction: PASS, avatar migration applied.
+- php artisan storage:link --no-interaction: PASS.
+- php artisan migrate:status: all six migrations applied.
+- php artisan route:list --except-vendor: 12 application routes.
+- php artisan view:cache: PASS.
+- composer check-platform-reqs: PASS. GD presence checked separately.
+- vendor/bin/pint --dirty --format agent: PASS.
+- git diff --check: PASS.
+- Live browser: customer form layout inspected; whitespace-only name rejected with a readable error; email value preserved.
+
+Tests use in-memory SQLite and fake public storage. MySQL, live browser file selection and production hosting were not tested. Processing and upload behavior were exercised through Laravel feature requests with actual generated image bytes.
+
+7. COMMANDS
+The current local project already has dependencies, migration and storage link applied. To run it:
+cd '/Users/marius/Documents/Codex/2026-11-12/files-mentioned-by-the-user-it0049/outputs/laravel-pos'
+php artisan serve
+
+For a fresh extraction/clone (install PHP 8.3+ compatible with composer.lock, Composer, GD, Fileinfo and PDO SQLite):
+composer install
+cp .env.example .env
+php artisan key:generate
+php -r "file_exists('database/database.sqlite') || touch('database/database.sqlite');"
+php artisan migrate --no-interaction
+php artisan db:seed --no-interaction
+php artisan storage:link --no-interaction
+php artisan test --compact
+php artisan serve
+
+For an existing installation, back up the database and preserve .env/APP_KEY. Run composer install, php artisan migrate --no-interaction and php artisan storage:link --no-interaction. Do not run migrate:fresh. See README for MySQL settings and persistent hosting storage.
+
+8. MANUAL VERIFICATION
+Open /customers and /users. Use Add controls and save valid records; confirm new rows and success notices. Try blank names, invalid email and duplicate usernames. Edit existing records and confirm no additional rows appear. Save a user with their unchanged username, then try a new available one. Upload a valid image in Edit user and confirm thumbnail display. Save without another image and confirm preservation. Try PDF/oversized images; confirm rejection and preserved old text. Check placeholders, navigation and missing-record 404s. Files must be selected again after validation errors; passwords are never redisplayed.
+
+9. GITHUB AND DEPLOYMENT
+Deployment has not been performed. Check repository commit history for the latest publication status. The existing repository is https://github.com/MariusKii/laravel-pos.
+Review git diff, run tests, stage the files listed above, inspect git diff --cached, commit and push. README contains commands. The source archive excludes .env, SQLite data/backups, Git metadata, vendor, node_modules, uploaded files, logs and compiled caches.
+
+Deploy to a PHP-capable host with the public/ document root, persistent database and storage/app/public, and PHP GD enabled. Configure production APP_KEY once, APP_URL, APP_ENV=production and APP_DEBUG=false. Install locked production dependencies, back up production data, migrate --force, optionally seed lab examples, run storage:link and optimize. Configure PHP upload_max_filesize >= 2M and post_max_size above 2M plus matching server limits. Verify create/edit/upload flows over HTTPS and record the real hosted URL in SUBMISSION.md. GitHub Pages cannot run Laravel. Submit repository and hosted URLs and complete the assessment cover sheet.
+
+10. REMAINING ISSUES
+No failing local checks remain. Hosting is pending. Check repository commit history for publication status. Production/MySQL behavior needs verification on the selected host. This remains the existing lab directory application without a login/authorization flow; restrict write access before exposing it as a real POS system.
+
+Official API references used:
+https://laravel.com/docs/13.x/validation
+https://image.intervention.io/v3/basics/instantiation
+https://image.intervention.io/v3/modifying-images/resizing

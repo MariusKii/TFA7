@@ -1,16 +1,17 @@
-# TFA6 submission checklist
+# TFA7 submission checklist
 
-- [x] Existing TFA5 application upgraded in place, with its four routes and CSS preserved.
-- [x] Customers migration and additive users migration included.
-- [x] TFA2 field lengths, nullable phone, and unique username implemented; Laravel compatibility differences documented in README.
-- [x] Customer/User Eloquent models and controllers implemented.
-- [x] Rerunnable seeders; five customers and five users verified locally.
-- [x] Blade views show database records and handle empty results.
-- [x] 11 tests / 69 assertions passed; all four live pages and CSS returned HTTP 200.
-- [x] README includes installation, database setup, migration, seeding, and deployment instructions.
-- [x] Publish TFA6 changes to [the existing GitHub repository](https://github.com/MariusKii/laravel-pos).
-- [ ] Deploy to a PHP-capable host, migrate and seed its persistent database, and verify the live pages.
-- [ ] Add the verified hosted URL here. No hosted URL is available yet.
-- [ ] Complete the assignment cover sheet and submit both links.
+- [x] Extend the existing TFA6 POS in place.
+- [x] Customer and user create/edit forms, validation, old input, success notices.
+- [x] Nullable avatar migration, approved Intervention Image integration, public Storage uploads and placeholders.
+- [x] Preserve existing data and previous tests; update setup documentation.
+- [x] 23 tests / 179 assertions passed locally on November 14, 2026.
+- [x] Review TFA7 source changes for publication to the existing GitHub repository.
+- [ ] Deploy on a PHP-capable host with persistent database and public-disk storage.
+- [ ] Verify production create/edit/upload workflows and record the real HTTPS URL below.
+- [ ] Complete the assessment cover sheet and submit both links.
 
-See README.md for exact setup and deployment commands and IMPLEMENTATION_REPORT.md for schema, sample data, changed files, and testing evidence. Local `.env`, SQLite data, and database backups must remain private.
+Repository: https://github.com/MariusKii/laravel-pos
+
+Hosted URL: Pending deployment.
+
+Verify the latest TFA7 commit appears in the repository before submitting. Production deployment is pending. Do not submit a localhost URL as the hosted link. Never commit .env, database contents, vendor, or uploaded user files.
