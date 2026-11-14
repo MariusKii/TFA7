@@ -10,7 +10,7 @@
 - [ ] Verify production create/edit/upload workflows and record the real HTTPS URL below.
 - [ ] Complete the assessment cover sheet and submit both links.
 
-Repository: https://github.com/MariusKii/laravel-pos
+Repository: https://github.com/MariusKii/TFA7
 
 Hosted URL: Pending deployment.
 

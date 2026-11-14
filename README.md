@@ -135,7 +135,7 @@ The actual SQLite database was backed up before applying the avatar migration. A
 
 ## GitHub submission
 
-The existing repository is [MariusKii/laravel-pos](https://github.com/MariusKii/laravel-pos). TFA7 extends the same repository. For future updates, review the diff before publishing:
+The existing repository is [MariusKii/TFA7](https://github.com/MariusKii/TFA7). TFA7 extends the same repository. For future updates, review the diff before publishing:
 
 ```sh
 git status --short
